@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import prisma from "@/lib/db"
+import { obtenerAtencionesCompletas } from "@/lib/data"
 
 export async function POST(request: Request) {
   try {
@@ -14,101 +14,28 @@ export async function POST(request: Request) {
     const data = await request.json()
     const { fields, filters, format } = data
 
-    // Construir la consulta base
-    const where: any = {}
+    // Usar datos simulados en lugar de consultar la base de datos
+    const atenciones = obtenerAtencionesCompletas()
 
-    // Aplicar filtros
-    if (filters.dateFrom && filters.dateTo) {
-      where.fecha = {
-        gte: new Date(filters.dateFrom),
-        lte: new Date(filters.dateTo),
-      }
-    } else if (filters.dateFrom) {
-      where.fecha = {
-        gte: new Date(filters.dateFrom),
-      }
-    } else if (filters.dateTo) {
-      where.fecha = {
-        lte: new Date(filters.dateTo),
-      }
+    // Aplicar filtros si es necesario
+    let filteredData = [...atenciones]
+
+    // Filtrar por región
+    if (filters.region && filters.region !== "all") {
+      filteredData = filteredData.filter((atencion) => atencion.region?.id === filters.region)
     }
 
-    if (filters.region) {
-      where.agencia = {
-        region: {
-          id: filters.region,
-        },
-      }
+    // Filtrar por fecha
+    if (filters.dateFrom) {
+      const fromDate = new Date(filters.dateFrom)
+      filteredData = filteredData.filter((atencion) => new Date(atencion.fecha) >= fromDate)
     }
 
-    // Determinar qué campos incluir en la consulta
-    const select: any = {}
-
-    // Mapear los campos seleccionados a la estructura de Prisma
-    if (fields.consecutivo) select.consecutivo = true
-    if (fields.fecha) select.fecha = true
-    if (fields.tipoContacto) select.tipoContacto = true
-
-    // Incluir relaciones según los campos seleccionados
-    const include: any = {}
-
-    if (fields.nombreProductor || fields.cedulaProductor || fields.telefonoProductor || fields.correoProductor) {
-      include.productor = {
-        select: {
-          id: true,
-          ...(fields.nombreProductor && { nombre: true }),
-          ...(fields.cedulaProductor && { cedula: true }),
-          ...(fields.telefonoProductor && { telefono: true }),
-          ...(fields.correoProductor && { correo: true }),
-        },
-      }
+    if (filters.dateTo) {
+      const toDate = new Date(filters.dateTo)
+      toDate.setHours(23, 59, 59, 999) // Final del día
+      filteredData = filteredData.filter((atencion) => new Date(atencion.fecha) <= toDate)
     }
-
-    if (fields.region || fields.agencia) {
-      include.agencia = {
-        select: {
-          id: true,
-          ...(fields.agencia && { nombre: true }),
-          ...(fields.region && {
-            region: {
-              select: {
-                nombre: true,
-              },
-            },
-          }),
-        },
-      }
-    }
-
-    if (fields.funcionario) {
-      include.funcionario = {
-        select: {
-          id: true,
-          nombre: true,
-          email: true,
-        },
-      }
-    }
-
-    if (fields.actividad) select.actividad = true
-    if (fields.areaAtendida) select.areaAtendida = true
-    if (fields.medioAtencion) {
-      select.medioAtencionTipo = true
-      select.medioAtencionSubtipo = true
-    }
-    if (fields.asuntoRecomendacion) select.asuntoRecomendacion = true
-    if (fields.observacion) select.observacion = true
-    if (fields.requiereSeguimiento) select.requiereSeguimiento = true
-
-    // Obtener los datos
-    const atenciones = await prisma.atencion.findMany({
-      where,
-      select,
-      include: Object.keys(include).length > 0 ? include : undefined,
-      orderBy: {
-        fecha: "desc",
-      },
-    })
 
     // Procesar los datos según el formato solicitado
     let exportData
@@ -118,21 +45,21 @@ export async function POST(request: Request) {
       exportData = {
         type: "csv",
         filename: `atenciones_${new Date().toISOString().split("T")[0]}.csv`,
-        data: atenciones,
+        data: filteredData,
       }
     } else if (format === "excel") {
       // Generar Excel
       exportData = {
         type: "excel",
         filename: `atenciones_${new Date().toISOString().split("T")[0]}.xlsx`,
-        data: atenciones,
+        data: filteredData,
       }
     } else if (format === "pdf") {
       // Generar PDF
       exportData = {
         type: "pdf",
         filename: `atenciones_${new Date().toISOString().split("T")[0]}.pdf`,
-        data: atenciones,
+        data: filteredData,
       }
     }
 

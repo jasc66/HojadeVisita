@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import prisma from "@/lib/db"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { obtenerAtencionesCompletas } from "@/lib/data"
 
 export async function GET(request: Request) {
   try {
@@ -11,60 +11,34 @@ export async function GET(request: Request) {
     const search = searchParams.get("search") || ""
     const region = searchParams.get("region") || ""
 
-    const skip = (page - 1) * limit
+    // Usar datos simulados en lugar de consultar la base de datos
+    const atenciones = obtenerAtencionesCompletas()
 
-    // Construir la consulta base
-    const where: any = {}
+    // Aplicar filtros
+    let filteredData = [...atenciones]
 
-    // Agregar filtros de búsqueda si existen
     if (search) {
-      where.OR = [
-        { productor: { nombre: { contains: search, mode: "insensitive" } } },
-        { productor: { cedula: { contains: search, mode: "insensitive" } } },
-        { consecutivo: { contains: search, mode: "insensitive" } },
-        { actividad: { contains: search, mode: "insensitive" } },
-      ]
+      const searchLower = search.toLowerCase()
+      filteredData = filteredData.filter(
+        (atencion) =>
+          atencion.productor.nombre.toLowerCase().includes(searchLower) ||
+          atencion.productor.cedula.toLowerCase().includes(searchLower) ||
+          atencion.consecutivo.toLowerCase().includes(searchLower) ||
+          atencion.actividad.toLowerCase().includes(searchLower),
+      )
     }
 
-    // Filtrar por región si se especifica
     if (region) {
-      where.agencia = {
-        region: {
-          nombre: region,
-        },
-      }
+      filteredData = filteredData.filter((atencion) => atencion.region?.nombre === region)
     }
 
-    // Obtener el total de registros que coinciden con la búsqueda
-    const total = await prisma.atencion.count({ where })
-
-    // Obtener los registros paginados
-    const atenciones = await prisma.atencion.findMany({
-      where,
-      include: {
-        productor: true,
-        funcionario: {
-          select: {
-            id: true,
-            nombre: true,
-            email: true,
-          },
-        },
-        agencia: {
-          include: {
-            region: true,
-          },
-        },
-      },
-      orderBy: {
-        fecha: "desc",
-      },
-      skip,
-      take: limit,
-    })
+    // Calcular paginación
+    const total = filteredData.length
+    const skip = (page - 1) * limit
+    const paginatedData = filteredData.slice(skip, skip + limit)
 
     return NextResponse.json({
-      data: atenciones,
+      data: paginatedData,
       meta: {
         total,
         page,
@@ -88,63 +62,25 @@ export async function POST(request: Request) {
 
     const data = await request.json()
 
-    // Generar consecutivo automático
+    // Simular la creación de una atención
+    // En un entorno real, esto usaría Prisma para guardar en la base de datos
+
+    // Generar un ID único
+    const id = Math.random().toString(36).substring(2, 11)
+
+    // Generar consecutivo
     const year = new Date().getFullYear()
-    const lastAtencion = await prisma.atencion.findFirst({
-      where: {
-        consecutivo: {
-          startsWith: `${year}-`,
-        },
-      },
-      orderBy: {
-        consecutivo: "desc",
-      },
-    })
+    const consecutivo = `${year}-${Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0")}`
 
-    let consecutivoNum = 1
-    if (lastAtencion) {
-      const lastNum = Number.parseInt(lastAtencion.consecutivo.split("-")[1])
-      consecutivoNum = lastNum + 1
+    const atencion = {
+      id,
+      consecutivo,
+      ...data,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     }
-
-    const consecutivo = `${year}-${consecutivoNum.toString().padStart(3, "0")}`
-
-    // Buscar o crear el productor
-    let productor = await prisma.productor.findUnique({
-      where: {
-        cedula: data.cedulaProductor,
-      },
-    })
-
-    if (!productor) {
-      productor = await prisma.productor.create({
-        data: {
-          cedula: data.cedulaProductor,
-          nombre: data.nombreProductor,
-          telefono: data.telefonoProductor,
-          correo: data.correoProductor || null,
-        },
-      })
-    }
-
-    // Crear la atención
-    const atencion = await prisma.atencion.create({
-      data: {
-        consecutivo,
-        tipoContacto: data.tipoContacto,
-        fecha: data.fecha,
-        funcionarioId: session.user.id,
-        agenciaId: data.agenciaId,
-        productorId: productor.id,
-        actividad: data.actividad,
-        areaAtendida: data.areaAtendida,
-        medioAtencionTipo: data.medioAtencion.tipo,
-        medioAtencionSubtipo: data.medioAtencion.subtipo,
-        asuntoRecomendacion: data.asuntoRecomendacion,
-        observacion: data.observacion || null,
-        requiereSeguimiento: data.requiereSeguimiento,
-      },
-    })
 
     return NextResponse.json(atencion, { status: 201 })
   } catch (error) {
