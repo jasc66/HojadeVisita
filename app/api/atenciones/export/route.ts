@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import prisma from "@/lib/db"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { obtenerAtencionesCompletas } from "@/lib/data"
 
 export async function POST(request: Request) {
   try {
@@ -13,68 +13,37 @@ export async function POST(request: Request) {
 
     const { fields, filters } = await request.json()
 
-    // Construir la consulta base
-    const where: any = {}
+    // Usar datos simulados en lugar de consultar la base de datos
+    const atenciones = obtenerAtencionesCompletas()
 
     // Aplicar filtros
+    let filteredData = [...atenciones]
+
+    // Aplicar filtros de fecha
     if (filters.dateFrom && filters.dateTo) {
-      where.fecha = {
-        gte: new Date(filters.dateFrom),
-        lte: new Date(filters.dateTo),
-      }
+      const fromDate = new Date(filters.dateFrom)
+      const toDate = new Date(filters.dateTo)
+      toDate.setHours(23, 59, 59, 999) // Final del día
+
+      filteredData = filteredData.filter((atencion) => {
+        const fechaAtencion = new Date(atencion.fecha)
+        return fechaAtencion >= fromDate && fechaAtencion <= toDate
+      })
     } else if (filters.dateFrom) {
-      where.fecha = {
-        gte: new Date(filters.dateFrom),
-      }
+      const fromDate = new Date(filters.dateFrom)
+      filteredData = filteredData.filter((atencion) => new Date(atencion.fecha) >= fromDate)
     } else if (filters.dateTo) {
-      where.fecha = {
-        lte: new Date(filters.dateTo),
-      }
+      const toDate = new Date(filters.dateTo)
+      toDate.setHours(23, 59, 59, 999) // Final del día
+      filteredData = filteredData.filter((atencion) => new Date(atencion.fecha) <= toDate)
     }
 
+    // Filtrar por región
     if (filters.region && filters.region !== "all") {
-      where.agencia = {
-        region: {
-          id: filters.region,
-        },
-      }
+      filteredData = filteredData.filter((atencion) => atencion.region?.id === filters.region)
     }
 
-    // Determinar qué incluir en la consulta
-    const include: any = {}
-
-    if (fields.nombreProductor || fields.cedulaProductor || fields.telefonoProductor || fields.correoProductor) {
-      include.productor = true
-    }
-
-    if (fields.region || fields.agencia) {
-      include.agencia = {
-        include: {
-          region: fields.region,
-        },
-      }
-    }
-
-    if (fields.funcionario) {
-      include.funcionario = {
-        select: {
-          id: true,
-          nombre: true,
-          email: true,
-        },
-      }
-    }
-
-    // Obtener los datos
-    const atenciones = await prisma.atencion.findMany({
-      where,
-      include: Object.keys(include).length > 0 ? include : undefined,
-      orderBy: {
-        fecha: "desc",
-      },
-    })
-
-    return NextResponse.json({ data: atenciones })
+    return NextResponse.json({ data: filteredData })
   } catch (error) {
     console.error("Error al exportar datos:", error)
     return NextResponse.json({ error: "Error al exportar los datos" }, { status: 500 })

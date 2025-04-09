@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { obtenerEstadisticas } from "@/lib/data"
 import {
@@ -19,31 +18,36 @@ import {
   Cell,
   Legend,
 } from "recharts"
+import { useAuth } from "@/lib/auth-context"
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82ca9d"]
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
   const [estadisticas, setEstadisticas] = useState<any>(null)
 
   // Redirigir si no está autenticado
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!isLoading && !user) {
       router.push("/login")
     }
-  }, [status, router])
+  }, [user, isLoading, router])
 
   // Cargar estadísticas
   useEffect(() => {
-    if (status === "authenticated") {
+    if (user) {
       const data = obtenerEstadisticas()
       setEstadisticas(data)
     }
-  }, [status])
+  }, [user])
 
-  if (status === "loading" || !estadisticas) {
+  if (isLoading || !estadisticas) {
     return <div className="container mx-auto py-10 text-center">Cargando...</div>
+  }
+
+  if (!user) {
+    return null
   }
 
   return (

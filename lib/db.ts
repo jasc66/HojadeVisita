@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client"
-
 // Verificar si estamos en producción (Vercel)
-const isProduction = process.env.NODE_ENV === "production" && process.env.VERCEL === "1"
+const isProduction = process.env.NODE_ENV === "production"
 
 // Crear un cliente simulado para entornos de producción sin base de datos
 const createMockPrismaClient = () => {
@@ -38,17 +36,8 @@ const createMockPrismaClient = () => {
   }
 }
 
-// Usar cliente real o simulado según el entorno
-let prisma: any
-
-if (isProduction) {
-  console.log("Usando cliente Prisma simulado en producción")
-  prisma = createMockPrismaClient()
-} else {
-  // En desarrollo, usar el cliente real
-  const globalForPrisma = global as unknown as { prisma: PrismaClient }
-  prisma = globalForPrisma.prisma || new PrismaClient()
-  if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
-}
+// Usar cliente simulado en todos los entornos para evitar problemas de despliegue
+console.log("Usando cliente Prisma simulado")
+const prisma = createMockPrismaClient()
 
 export default prisma

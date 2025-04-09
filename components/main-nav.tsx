@@ -5,19 +5,15 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { TreesIcon, BarChart3, ClipboardList, Users, LogIn, LogOut, FileDown } from "lucide-react"
-import { useSession, signOut } from "next-auth/react"
+import { useAuth } from "@/lib/auth-context"
 
 export function MainNav() {
   const pathname = usePathname()
-  const { data: session } = useSession()
+  const { user, logout } = useAuth()
 
   // No mostrar la barra de navegación en la página de login
   if (pathname === "/login") {
     return null
-  }
-
-  const handleSignOut = () => {
-    signOut({ callbackUrl: "/login" })
   }
 
   return (
@@ -28,7 +24,7 @@ export function MainNav() {
             <TreesIcon className="h-6 w-6 text-green-600" />
             <span className="hidden font-bold sm:inline-block">Sistema Agropecuario</span>
           </Link>
-          {session && (
+          {user && (
             <nav className="flex items-center space-x-4 lg:space-x-6">
               <Link
                 href="/atenciones"
@@ -75,9 +71,9 @@ export function MainNav() {
         </div>
 
         <div className="flex items-center gap-2">
-          {session ? (
+          {user ? (
             <>
-              <Button variant="destructive" onClick={handleSignOut} className="flex items-center gap-2">
+              <Button variant="destructive" onClick={logout} className="flex items-center gap-2">
                 <LogOut className="h-4 w-4" />
                 <span>Cerrar sesión</span>
               </Button>

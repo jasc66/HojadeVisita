@@ -1,16 +1,29 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { ArrowRight, ClipboardList, BarChart3, Users } from "lucide-react"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
-import { redirect } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
-export default async function Home() {
-  const session = await getServerSession(authOptions)
+export default function Home() {
+  const { user, isLoading } = useAuth()
+  const router = useRouter()
 
-  if (!session) {
-    redirect("/login")
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, isLoading, router])
+
+  if (isLoading) {
+    return <div className="container mx-auto py-10 text-center">Cargando...</div>
+  }
+
+  if (!user) {
+    return null
   }
 
   return (
@@ -18,7 +31,7 @@ export default async function Home() {
       <div className="text-center mb-10">
         <h1 className="text-4xl font-bold tracking-tight">Sistema de Gestión de Atención a Productores</h1>
         <p className="text-xl text-muted-foreground mt-2">Servicio de Extensión Agropecuaria</p>
-        <p className="mt-2 text-green-600">Bienvenido, {session.user.name}</p>
+        <p className="mt-2 text-green-600">Bienvenido, {user.nombre}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">

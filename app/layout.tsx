@@ -1,9 +1,9 @@
 import type React from "react"
 import "@/app/globals.css"
 import { Inter } from "next/font/google"
-import { AuthProvider } from "@/components/auth-provider"
 import { MainNav } from "@/components/main-nav"
 import { Toaster } from "@/components/ui/toaster"
+import { AuthProvider } from "@/lib/auth-context"
 
 const inter = Inter({ subsets: ["latin"] })
 

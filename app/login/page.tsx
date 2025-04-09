@@ -1,9 +1,7 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,9 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { TreesIcon } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -25,22 +25,18 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const result = await signIn("credentials", {
-        redirect: false,
-        email,
-        password,
-      })
+      const success = await login(email, password)
 
-      if (result?.error) {
+      if (!success) {
         setError("Credenciales inválidas. Por favor, intente de nuevo.")
         setLoading(false)
         return
       }
 
       router.push("/")
-      router.refresh()
     } catch (error) {
       setError("Ocurrió un error al iniciar sesión. Por favor, intente de nuevo.")
+    } finally {
       setLoading(false)
     }
   }

@@ -67,5 +67,5 @@ export const authOptions: NextAuthOptions = {
       return session
     },
   },
-  secret: "tu-secreto-seguro-aqui", // En producción, usar una variable de entorno
+  secret: process.env.NEXTAUTH_SECRET || "tu-secreto-seguro-aqui", // En producción, usar una variable de entorno
 }
