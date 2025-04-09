@@ -8,13 +8,13 @@ import Link from "next/link"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { obtenerAtencionesCompletas } from "@/lib/data"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 export default function AtencionesPage() {
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [atenciones, setAtenciones] = useState<any[]>([])
@@ -22,18 +22,18 @@ export default function AtencionesPage() {
 
   // Redirigir si no está autenticado
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!isLoading && !user) {
       router.push("/login")
     }
-  }, [status, router])
+  }, [isLoading, router, user])
 
   // Cargar atenciones
   useEffect(() => {
-    if (status === "authenticated") {
+    if (user) {
       const data = obtenerAtencionesCompletas()
       setAtenciones(data)
     }
-  }, [status])
+  }, [user])
 
   // Filtrar atenciones
   const atencionesFiltered = atenciones.filter((atencion) => {
@@ -61,7 +61,7 @@ export default function AtencionesPage() {
     }
   }
 
-  if (status === "loading") {
+  if (isLoading) {
     return <div className="container mx-auto py-10 text-center">Cargando...</div>
   }
 

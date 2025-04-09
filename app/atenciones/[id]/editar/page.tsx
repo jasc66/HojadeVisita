@@ -12,15 +12,21 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { useSession } from "next-auth/react"
+// Eliminar la importación de useSession
+// import { useSession } from "next-auth/react"
 import { regiones, agencias, obtenerAtencionPorId, obtenerProductorPorId, obtenerAgenciaPorId } from "@/lib/data"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+// Añadir la importación de useAuth
+import { useAuth } from "@/lib/auth-context"
 
 export default function EditarAtencionPage() {
   const router = useRouter()
   const params = useParams()
   const { toast } = useToast()
-  const { data: session, status } = useSession()
+  // Reemplazar esta línea:
+  // const { data: session, status } = useSession()
+  // Por esta:
+  const { user, isLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
   const [error, setError] = useState("")
@@ -45,14 +51,16 @@ export default function EditarAtencionPage() {
 
   // Redirigir si no está autenticado
   useEffect(() => {
-    if (status === "unauthenticated") {
+    // Reemplazar status === "unauthenticated" por !user && !isLoading
+    if (!user && !isLoading) {
       router.push("/login")
     }
-  }, [status, router])
+  }, [isLoading, router, user])
 
   // Cargar datos de la atención
   useEffect(() => {
-    if (status === "authenticated" && params.id) {
+    // Reemplazar todas las referencias a status por isLoading
+    if (!isLoading && params.id) {
       const id = Array.isArray(params.id) ? params.id[0] : params.id
       const atencion = obtenerAtencionPorId(id)
 
@@ -99,7 +107,7 @@ export default function EditarAtencionPage() {
 
       setLoadingData(false)
     }
-  }, [status, params.id])
+  }, [isLoading, params.id])
 
   // Filtrar agencias por región
   useEffect(() => {
@@ -152,7 +160,8 @@ export default function EditarAtencionPage() {
     }
   }
 
-  if (status === "loading" || loadingData) {
+  // Reemplazar status === "loading" por isLoading
+  if (isLoading || loadingData) {
     return <div className="container mx-auto py-10 text-center">Cargando...</div>
   }
 
@@ -256,7 +265,8 @@ export default function EditarAtencionPage() {
                   id="funcionario"
                   name="funcionario"
                   placeholder="Nombre completo del funcionario"
-                  value={session?.user.name || ""}
+                  // Reemplazar session?.user.name por user?.nombre
+                  value={user?.nombre || ""}
                   readOnly
                 />
               </div>

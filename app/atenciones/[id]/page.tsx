@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/lib/auth-context"
 import {
   obtenerAtencionPorId,
   obtenerProductorPorId,
@@ -19,7 +19,7 @@ import { ArrowLeft, Pencil } from "lucide-react"
 export default function DetalleAtencionPage() {
   const router = useRouter()
   const params = useParams()
-  const { status } = useSession()
+  const { user, isLoading } = useAuth()
   const [loadingData, setLoadingData] = useState(true)
   const [error, setError] = useState("")
   const [atencion, setAtencion] = useState<any>(null)
@@ -30,14 +30,14 @@ export default function DetalleAtencionPage() {
 
   // Redirigir si no está autenticado
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!isLoading && !user) {
       router.push("/login")
     }
-  }, [status, router])
+  }, [isLoading, router, user])
 
   // Cargar datos de la atención
   useEffect(() => {
-    if (status === "authenticated" && params.id) {
+    if (user && params.id) {
       const id = Array.isArray(params.id) ? params.id[0] : params.id
       const atencionData = obtenerAtencionPorId(id)
 
@@ -72,9 +72,9 @@ export default function DetalleAtencionPage() {
 
       setLoadingData(false)
     }
-  }, [status, params.id])
+  }, [isLoading, params.id, user])
 
-  if (status === "loading" || loadingData) {
+  if (isLoading || loadingData) {
     return <div className="container mx-auto py-10 text-center">Cargando...</div>
   }
 

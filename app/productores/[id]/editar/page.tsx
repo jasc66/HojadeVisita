@@ -9,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/lib/auth-context"
 import { obtenerProductorPorId } from "@/lib/data"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Save } from "lucide-react"
@@ -18,7 +18,7 @@ export default function EditarProductorPage() {
   const router = useRouter()
   const params = useParams()
   const { toast } = useToast()
-  const { status } = useSession()
+  const { user, isLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
   const [error, setError] = useState("")
@@ -31,14 +31,14 @@ export default function EditarProductorPage() {
 
   // Redirigir si no está autenticado
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!user && !isLoading) {
       router.push("/login")
     }
-  }, [status, router])
+  }, [user, isLoading, router])
 
   // Cargar datos del productor
   useEffect(() => {
-    if (status === "authenticated" && params.id) {
+    if (user && !isLoading && params.id) {
       const id = Array.isArray(params.id) ? params.id[0] : params.id
       const productor = obtenerProductorPorId(id)
 
@@ -57,7 +57,7 @@ export default function EditarProductorPage() {
 
       setLoadingData(false)
     }
-  }, [status, params.id])
+  }, [user, isLoading, params.id])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -92,7 +92,7 @@ export default function EditarProductorPage() {
     }
   }
 
-  if (status === "loading" || loadingData) {
+  if (isLoading || loadingData) {
     return <div className="container mx-auto py-10 text-center">Cargando...</div>
   }
 

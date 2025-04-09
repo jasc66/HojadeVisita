@@ -6,15 +6,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { useSession } from "next-auth/react"
 import { obtenerProductorPorId, obtenerAtencionesCompletas } from "@/lib/data"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Phone, Mail, User } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+// Eliminar la importación de useSession
+// import { useSession } from "next-auth/react"
 
 export default function DetalleProductorPage() {
   const router = useRouter()
   const params = useParams()
-  const { status } = useSession()
+  const { user, isLoading } = useAuth()
   const [loadingData, setLoadingData] = useState(true)
   const [error, setError] = useState("")
   const [productor, setProductor] = useState<any>(null)
@@ -22,14 +24,14 @@ export default function DetalleProductorPage() {
 
   // Redirigir si no está autenticado
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!user && !isLoading) {
       router.push("/login")
     }
-  }, [status, router])
+  }, [user, isLoading, router])
 
   // Cargar datos del productor
   useEffect(() => {
-    if (status === "authenticated" && params.id) {
+    if (user && params.id) {
       const id = Array.isArray(params.id) ? params.id[0] : params.id
       const productorData = obtenerProductorPorId(id)
 
@@ -48,9 +50,9 @@ export default function DetalleProductorPage() {
 
       setLoadingData(false)
     }
-  }, [status, params.id])
+  }, [user, params.id])
 
-  if (status === "loading" || loadingData) {
+  if (isLoading || loadingData) {
     return <div className="container mx-auto py-10 text-center">Cargando...</div>
   }
 

@@ -6,27 +6,28 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import { useSession } from "next-auth/react"
 import { productores, atenciones } from "@/lib/data"
 import { Search, Plus, Eye, MoreHorizontal, Pencil } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/lib/auth-context"
+// import { useSession } from "next-auth/react"
 
 export default function ProductoresPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const [filtro, setFiltro] = useState("")
   const [productoresData, setProductoresData] = useState<any[]>([])
 
   // Redirigir si no está autenticado
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!user && !isLoading) {
       router.push("/login")
     }
-  }, [status, router])
+  }, [user, isLoading, router])
 
   // Cargar datos de productores con conteo de atenciones
   useEffect(() => {
-    if (status === "authenticated") {
+    if (user && !isLoading) {
       // Añadir conteo de atenciones a cada productor
       const productoresConAtenciones = productores.map((productor) => {
         const numAtenciones = atenciones.filter((a) => a.productorId === productor.id).length
@@ -37,7 +38,7 @@ export default function ProductoresPage() {
       })
       setProductoresData(productoresConAtenciones)
     }
-  }, [status])
+  }, [user, isLoading])
 
   // Filtrar productores
   const productoresFiltrados = productoresData.filter((productor) => {
@@ -52,7 +53,7 @@ export default function ProductoresPage() {
     )
   })
 
-  if (status === "loading") {
+  if (isLoading) {
     return <div className="container mx-auto py-10 text-center">Cargando...</div>
   }
 

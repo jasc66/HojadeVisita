@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -15,10 +14,13 @@ import { FileDown, Filter, Database } from "lucide-react"
 import { regiones, obtenerAtencionesCompletas } from "@/lib/data"
 // Importar las utilidades de exportación
 import { generateCSV, generateExcel, downloadFile } from "@/lib/export-utils"
+import { useAuth } from "@/lib/auth-context"
+// Eliminar la importación de useSession
+// import { useSession } from "next-auth/react"
 
 export default function ExportarPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [exportType, setExportType] = useState("csv")
@@ -49,10 +51,10 @@ export default function ExportarPage() {
 
   // Redirigir si no está autenticado
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!user && !isLoading) {
       router.push("/login")
     }
-  }, [status, router])
+  }, [user, isLoading, router])
 
   // Función para exportar datos
   const handleExport = async () => {
@@ -161,7 +163,7 @@ export default function ExportarPage() {
     }
   }
 
-  if (status === "loading") {
+  if (isLoading) {
     return <div className="container mx-auto py-10 text-center">Cargando...</div>
   }
 

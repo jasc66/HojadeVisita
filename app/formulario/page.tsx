@@ -12,13 +12,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/lib/auth-context"
 import { regiones, agencias } from "@/lib/data"
 
 export default function FormularioPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [tipoContacto, setTipoContacto] = useState("Contacto")
   const [regionId, setRegionId] = useState("")
@@ -30,10 +30,10 @@ export default function FormularioPage() {
 
   // Redirigir si no está autenticado
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!isLoading && !user) {
       router.push("/login")
     }
-  }, [status, router])
+  }, [isLoading, router, user])
 
   // Filtrar agencias por región
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function FormularioPage() {
     const data = {
       tipoContacto,
       fecha: formData.get("fecha") as string,
-      funcionarioId: session?.user.id,
+      funcionarioId: user?.id,
       agenciaId,
       nombreProductor: formData.get("nombreProductor") as string,
       cedulaProductor: formData.get("cedula") as string,
@@ -98,7 +98,7 @@ export default function FormularioPage() {
     }
   }
 
-  if (status === "loading") {
+  if (isLoading) {
     return <div className="container mx-auto py-10 text-center">Cargando...</div>
   }
 
@@ -189,7 +189,7 @@ export default function FormularioPage() {
                   id="funcionario"
                   name="funcionario"
                   placeholder="Nombre completo del funcionario"
-                  value={session?.user.name || ""}
+                  value={user?.nombre || ""}
                   readOnly
                 />
               </div>
