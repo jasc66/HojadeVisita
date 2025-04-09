@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id            String    @id @default(cuid())
+  nombre        String
+  email         String    @unique
+  password      String
+  rol           String    @default("funcionario") // admin, funcionario, consulta
+  agencia       Agencia?  @relation(fields: [agenciaId], references: [id])
+  agenciaId     String?
+  atenciones    Atencion[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Region {
+  id            String    @id @default(cuid())
+  nombre        String    @unique
+  agencias      Agencia[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Agencia {
+  id            String    @id @default(cuid())
+  nombre        String
+  telefono      String
+  region        Region    @relation(fields: [regionId], references: [id])
+  regionId      String
+  usuarios      Usuario[]
+  atenciones    Atencion[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([nombre, regionId])
+}
+
+model Productor {
+  id            String    @id @default(cuid())
+  cedula        String    @unique
+  nombre        String
+  telefono      String
+  correo        String?
+  atenciones    Atencion[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Atencion {
+  id                  String    @id @default(cuid())
+  consecutivo         String    @unique
+  tipoContacto        String    // Contacto, Ocasional
+  fecha               DateTime
+  funcionario         Usuario   @relation(fields: [funcionarioId], references: [id])
+  funcionarioId       String
+  agencia             Agencia   @relation(fields: [agenciaId], references: [id])
+  agenciaId           String
+  productor           Productor @relation(fields: [productorId], references: [id])
+  productorId         String
+  actividad           String
+  areaAtendida        String
+  medioAtencionTipo   String    // Virtual, Presencial
+  medioAtencionSubtipo String   // Teams, Telefónico, Correo, Oficina, Finca
+  asuntoRecomendacion String    @db.Text
+  observacion         String?   @db.Text
+  requiereSeguimiento Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
